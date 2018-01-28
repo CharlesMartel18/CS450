@@ -1,13 +1,13 @@
 When your assignment is complete, please answer the questions in this text file and upload it to I-Learn.
 
 1. Please provide the URL of your public GitHub repository.
-
+https://github.com/CharlesMartel18/CS450.git
 
 2. What was the most difficult part of this assignment?
-
+In a way it was working with the missing data from the MPG dataset, though I don't think it was really the fact that the data was missing. Some students seemed to be able to use the same functions for changing the "?" to the mean of the column, but mine would not work with them. It still isn't quite working, but I was able to change the "?" to 0's.
 
 3. Briefly describe your process for handling non-numeric data.
-
+For the most part, any non-numeric data I changed to a range between 0 and the number of different values it could have been 
 
 4. Briefly describe your process for missing data.
 

@@ -52,6 +52,7 @@ class HollistKnnClassifier:
     def fit(self, data_train, targets_train):
         return HollistKnnModel(self.k, data_train, targets_train)
 
+
 class HollistKnnModel:
     def __init__(self, k, data_train, targets_train):
         self.k = k
@@ -66,7 +67,7 @@ class HollistKnnModel:
             targets = []
             for j in range(len(self.data_train)):
                 d = np.sqrt(np.sum(np.square(data_test[i, :] - self.data_train[j, :])))
-                distances.append(d, i)
+                distances.append([d, i])
 
             distances = sorted(distances)
             for j in range(self.k):
@@ -107,8 +108,14 @@ def run_test(data, targets, algorithm, test_size=0.3):
     # Use k-fold cross validation to compare your results
     n = 3
     kfold = KFold(n_splits=n, random_state=7)
-    result = cross_val_score(model, data_test, targets_test, cv=kfold, scoring='accuracy')
-    print("{}-Fold Cross-Val Score: {:.2f}%".format(n, result))
+    
+    #for k in xrange(n):
+    #    training = [x for i, x in enumerate(X) if i % K != k]
+    #    validation = [x for i, x in enumerate(X) if i % K == k]
+    #    yield training, validation
+    
+    result = cross_val_score(algorithm, data_test, targets_test, cv=kfold, scoring='accuracy')
+    print("{}-Fold Cross-Val Score: {}".format(str(n), result))
 
     # Send the model back
     return model
@@ -119,26 +126,15 @@ def get_algorithm():
     A factory to create the algorithm we want.
     :return:
     """
-    algorithm = GaussianNB()
+    #algorithm = GaussianNB()
     #algorithm = HardCodedClassifier()
-    #algorithm = KNeighborsClassifier(n_neighbors=3)
+    algorithm = KNeighborsClassifier(n_neighbors=3)
     #algorithm = HollistKnnClassifier(3)
 
     return algorithm
 
 
-def load_cars():
-    # Read in data set
-    file_name = 'https://archive.ics.uci.edu/ml/machine-learning-databases/car/car.data'
-    df = pd.io.parsers.read_csv(file_name, header=None)
-    df.columns = ['buying', 'maint', 'doors', 'persons', 'lug_boot', 'safety', 'class']
-    df.head()
-
-    # Split into data and targets
-    data_array = df.ix[:, 0:6]	    # end index is exclusive
-    targets_array = df['class'] 	# another way of indexing a pandas df
-
-    # Handle non-numeric data
+def handle_non_num_cars1(data_array):
     # [0]: 0, 1, 2, 3     (low, med, high, vhigh)
     data_array["buying"] = data_array["buying"].astype('category')
     data_array["buying"] = data_array["buying"].cat.codes
@@ -157,9 +153,39 @@ def load_cars():
     # [5]: 0, 1, 2        (low, med, high)
     data_array["safety"] = data_array["safety"].astype('category')
     data_array["safety"] = data_array["safety"].cat.codes
+    
+    return data_array
 
+
+def handle_non_num_cars2(data_array):    
+    cleanup_cols = {"buying"  : {"vhigh": 4, "high": 3, "med": 2, "low": 1},
+                    "maint"   : {"vhigh": 4, "high": 3, "med": 2, "low": 1},
+                    "doors"   : {"5more": 5, "4"   : 4, "3"  : 3, "2": 2},
+                    "persons" : {"more": 5, "4": 4, "2": 2},
+                    "lug_boot": {"big": 3, "med": 2, "small": 1},
+                    "safety"  : {"high": 3, "med": 2, "low": 1}
+                   }
+    data_array.replace(cleanup_cols, inplace=True)
+    return data_array
+
+
+def load_cars():
+    # Read in data set
+    file_name = 'https://archive.ics.uci.edu/ml/machine-learning-databases/car/car.data'
+    df = pd.io.parsers.read_csv(file_name, header=None)
+    df.columns = ['buying', 'maint', 'doors', 'persons', 'lug_boot', 'safety', 'class']
+    df.head()
+
+    # Split into data and targets
+    data_array = df.ix[:, 0:6]	    # end index is exclusive
+    targets_array = df['class'] 	# another way of indexing a pandas df
+
+    # Handle non-numeric data
+    #data_array = handle_non_num_cars1(data_array)
+    data_array = handle_non_num_cars2(data_array)
+    
     # Handle missing data
-    # Unnecessary for this dataset   #######
+    # Unnecessary for this dataset
 
     # Standardize data
     std_scale = preprocessing.StandardScaler().fit(data_array)
@@ -180,7 +206,9 @@ def load_diabetes():
     # Read in data set
     file_name = 'https://archive.ics.uci.edu/ml/machine-learning-databases/pima-indians-diabetes/pima-indians-diabetes.data'
     df = pd.io.parsers.read_csv(file_name, header=None)
+    print(df.columns)
     df.columns = ['num_preg', 'gluc_conc', 'blood_press', 'skin_thick', 'insulin', 'bmi', 'pedigree', 'age', 'class']
+    print(df.columns)
     df.head()
 
     # Split into data and targets
@@ -191,7 +219,7 @@ def load_diabetes():
     # Unnecessary for this dataset
 
     # Handle missing data
-    data_array[[1, 2, 3, 4, 5]] = data_array[[1, 2, 3, 4, 5]].replace(0, np.NaN)
+    data_array[['gluc_conc', 'blood_press', 'skin_thick', 'insulin', 'bmi']] = data_array[['gluc_conc', 'blood_press', 'skin_thick', 'insulin', 'bmi']].replace(0, np.NaN)
     data_array.fillna(data_array.mean(), inplace=True)
 
     # Standardize data
@@ -213,22 +241,24 @@ def load_diabetes():
 def load_mpg():
     # Read in data set
     file_name = 'https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data'
-    df = pd.io.parsers.read_csv(file_name, header=None)
+    df = pd.io.parsers.read_csv(file_name, delim_whitespace=True, header=None)
     df.columns = ['class', 'cylinders', 'disp', 'hp', 'weight', 'acc', 'year', 'origin', 'name']
     df.head()    # cont     m-v dis      cont    cont  cont      cont   m-v dis m-v dis   string
 
     # Split into data and targets
-    data_array = df.ix[:, 1:9]	    # end index is exclusive
+    data_array = df.ix[:, 1:8]	    # end index is exclusive, ignore the column of names
     targets_array = df['class'] 	# another way of indexing a pandas df
 
     # Handle non-numeric data 
     ## This should be okay, I like leaving the discrete multi-values as they are
-    data_array["name"] = data_array["name"].astype('category')
-    data_array["name"] = data_array["name"].cat.codes
+    # When commented out and data_array only goes from column 1 to column 8, ignore data in "name" column
+    #data_array["name"] = data_array["name"].astype('category')
+    #data_array["name"] = data_array["name"].cat.codes
 
     # Handle missing data ## This should be all that's necessary
-    data_array[[3]] = data_array[[3]].replace(' ?', np.NaN)
-    data_array.fillna(data_array.mean(), inplace=True)
+    data_array[['hp']] = data_array[['hp']].replace('?', np.NaN)
+    data_array['hp'].fillna(0, inplace=True)
+    print(data_array)
 
     # Standardize data
     std_scale = preprocessing.StandardScaler().fit(data_array)
@@ -251,10 +281,10 @@ def get_dataset():
     A factory to load the dataset we want.
     :return:
     """
-    data, targets = ds.load_iris().data, ds.load_iris().targets
-    # data, targets = load_cars()
-    # data, targets = load_diabetes()
-    # data, targets = load_mpg()
+    #data, targets = ds.load_iris().data, ds.load_iris().target
+    #data, targets = load_cars()
+    #data, targets = load_diabetes()
+    data, targets = load_mpg()
 
     return data, targets
 
