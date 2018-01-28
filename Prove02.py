@@ -7,9 +7,12 @@ Purpose: This program adds to the "experiment shell" where the author
     future assignments.
 """
 
+import pandas as pd
 import numpy as np
 from scipy import stats
 from sklearn.model_selection import train_test_split
+from slkearn.cross_validation import train_test_split
+from sklearn import preprocessing
 from sklearn import datasets
 #from sklearn.datasets import fetch_20newsgroups
 from sklearn.naive_bayes import GaussianNB
